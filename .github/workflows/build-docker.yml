@@ -1,0 +1,73 @@
+name: Build Docker on Upstream Update
+
+on:
+  schedule:
+    # Run once every day at midnight UTC
+    - cron: '0 0 * * *'
+
+  workflow_dispatch:
+
+jobs:
+  check_and_build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout local repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Get upstream commit SHA
+        run: |
+          REPO_OWNER="anuraghazra"
+          REPO_NAME="github-readme-stats"
+          REPO_BRANCH="master"
+
+          UPSTREAM_SHA=$(curl -s -H "Authorization: token ${{ secrets.GH_PAT }}" \
+            "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/branches/$REPO_BRANCH" | jq -r '.commit.sha')
+          echo "UPSTREAM_SHA=$UPSTREAM_SHA" >> $GITHUB_ENV
+          echo "::notice::Upstream SHA is: $UPSTREAM_SHA"
+
+      - name: Check if image with upstream SHA tag exists
+        id: check_published_image
+        run: |
+          IMAGE_NAME="ghcr.io/${{ github.repository }}"
+
+          if skopeo inspect docker://$IMAGE_NAME:${{ env.UPSTREAM_SHA }} > /dev/null 2>&1; then
+            echo "::notice::Image with SHA ${{ env.UPSTREAM_SHA }} already exists. Skipping build."
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+          else
+            echo "::notice::Image with SHA ${{ env.UPSTREAM_SHA }} does not exist. Proceeding with build."
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log in to GitHub Container Registry
+        if: steps.check_published_image.outputs.needs_update == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_PAT }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        if: steps.check_published_image.outputs.needs_update == 'true'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ env.UPSTREAM_SHA }}
+          labels: |
+            org.opencontainers.image.revision=${{ env.UPSTREAM_SHA }}
+
+      - name: Build and push Docker image
+        if: steps.check_published_image.outputs.needs_update == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
