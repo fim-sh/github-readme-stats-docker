@@ -42,7 +42,7 @@ jobs:
         run: |
           IMAGE_NAME="ghcr.io/${{ github.repository }}"
 
-          if skopeo inspect docker://$IMAGE_NAME:${{ env.UPSTREAM_SHA }} > /dev/null 2>&1; then
+          if ! skopeo inspect docker://$IMAGE_NAME:${{ env.UPSTREAM_SHA }} 2>&1 | grep -q "manifest unknown"; then
             echo "::notice::Image with SHA ${{ env.UPSTREAM_SHA }} already exists. Skipping build."
             echo "needs_update=false" >> $GITHUB_OUTPUT
           else
