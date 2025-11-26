@@ -10,8 +10,8 @@ RUN apk add --no-cache git
 RUN git clone https://github.com/anuraghazra/github-readme-stats.git .
 
 # Install dependencies
-RUN npm install express
 RUN npm install
+RUN npm install express@latest
 
 # Expose port
 EXPOSE 9000
