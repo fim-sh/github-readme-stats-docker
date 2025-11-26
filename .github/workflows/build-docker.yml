@@ -23,14 +23,14 @@ jobs:
           REPO_NAME="github-readme-stats"
           REPO_BRANCH="master"
 
-          UPSTREAM_SHA=$(curl -s -H "Authorization: token ${{ secrets.GH_PAT }}" \
+          UPSTREAM_SHA=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/branches/$REPO_BRANCH" | jq -r '.commit.sha')
 
           if [ -z "$UPSTREAM_SHA" ] || [ "$UPSTREAM_SHA" = "null" ]; then
             echo "::error::Failed to fetch upstream SHA"
             exit 1
           fi
-          
+
           echo "UPSTREAM_SHA=$UPSTREAM_SHA" >> $GITHUB_ENV
           echo "::notice::Upstream SHA is: $UPSTREAM_SHA"
 
