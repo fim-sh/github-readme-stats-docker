@@ -1,0 +1,17 @@
+services:
+  github-readme-stats:
+    image: ghcr.io/fim-sh/github-readme-stats-docker:latest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -T 10 http://127.0.0.1:9000/api || exit 1"]
+      interval: 3m
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 100M
+    environment:
+      #- PAT_1=<access token>
+      #- WHITELIST=<allowed users>
+      #- GIST_WHITELIST=<allowed users>
+      #- FETCH_MULTI_PAGE_STARS=true
