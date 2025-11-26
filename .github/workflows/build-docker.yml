@@ -68,6 +68,9 @@ jobs:
             org.opencontainers.image.revision=${{ env.UPSTREAM_SHA }}
 
       - name: Build and push Docker image
+        permissions:
+          contents: read
+          packages: write
         if: steps.check_published_image.outputs.needs_update == 'true'
         uses: docker/build-push-action@v5
         with:
