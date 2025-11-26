@@ -41,14 +41,21 @@ jobs:
         id: check_published_image
         run: |
           IMAGE_NAME="ghcr.io/${{ github.repository }}"
-
-          if ! skopeo inspect docker://$IMAGE_NAME:${{ env.UPSTREAM_SHA }} 2>&1 | grep -q "manifest unknown"; then
+          RESPONSE=$(skopeo inspect docker://$IMAGE_NAME:${{ env.UPSTREAM_SHA }} 2>&1)
+          EXIT_CODE=$?
+          
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::Failed to check image: $RESPONSE"
+            exit 1
+          elif echo "$RESPONSE" | grep -q "manifest unknown"; then
+            echo "::notice::Image with SHA ${{ env.UPSTREAM_SHA }} does not exist. Proceeding with build."
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+          elif echo "$RESPONSE" | grep -q "Created"; then
             echo "::notice::Image with SHA ${{ env.UPSTREAM_SHA }} already exists. Skipping build."
             echo "needs_update=false" >> $GITHUB_OUTPUT
           else
-            echo "::notice::Image with SHA ${{ env.UPSTREAM_SHA }} does not exist. Proceeding with build."
-            echo "needs_update=true" >> $GITHUB_OUTPUT
-          fi
+            echo "::error::Failed to check image - bad response: $RESPONSE"
+            exit 1
 
       - name: Log in to GitHub Container Registry
         if: steps.check_published_image.outputs.needs_update == 'true'
