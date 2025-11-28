@@ -1,4 +1,5 @@
 # GitHub Readme Stats Docker Image
+[![Build Docker on Upstream Update](https://github.com/fim-sh/github-readme-stats-docker/actions/workflows/build-docker.yml/badge.svg)](https://github.com/fim-sh/github-readme-stats-docker/actions/workflows/build-docker.yml)
 
 This project provides Docker images of the [github-readme-stats](https://github.com/anuraghazra/github-readme-stats) project for self-hosting purposes.
 
